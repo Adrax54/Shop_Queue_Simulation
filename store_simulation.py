@@ -3,17 +3,19 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
-"""Dane wejściowe i zmienne symulacji tutaj"""
-Kasy = 5
+"""Dane wejściowe i zmienne symulacji"""
 
 V_k = 0.5 # pół koszyka na minutę
 
-cashier_flag = 1
+cashier_flag = 1 # ilość kasjerów obsługujących jedną kasę 
 
-"""Wejścia symulacji"""
+czas_sym = 20 #Czas odbywania sie symulacjii (Minuty)
+
+"""Inicjalizacja symulacji"""
 
 env = simpy.RealtimeEnvironment()
 
+#Utworzenie Kas
 seller_line1 = simpy.Resource(env, capacity = cashier_flag)
 seller_line2 = simpy.Resource(env, capacity = cashier_flag)
 seller_line3 = simpy.Resource(env, capacity = cashier_flag)
@@ -33,14 +35,16 @@ czasy = []
 """Symulacja odbywa się tutaj """
 
 def Kolejka(seller_lines, env,nazwa, V, seller_flag):
+
     global czasy
-    """W tej funkcji odbywa się symulacja kolejki,
+
+    """W tej funkcji odbywa się symulacja kolejki sklepowej.
 
        parametry wejściowe :
 
-           seller_lines - kasy w sklepie (in : lista)
+           seller_lines - kasy w sklepie (in : list)
 
-           env - Symulacja (in : evironment z simpy)
+           env - Symulacja (in : evironment simpy)
 
            nazwa - parametr podający nazwę itego klienta ( in: var)
 
@@ -51,18 +55,9 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
        parametry wyjściowe :
 
             Przebieg symulacji
-
-
-
-       Ważne! do zrobienia jeszcze
-
-            dodać czas otwierania kasy
-
-            dodać wyjściowe rzeczy do badania (czas itp)
-
-            i w sumie niewiem
-
-
+            
+            Sredni czas przebywania klienta w systemie
+            
        """
 
 
@@ -111,8 +106,11 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
     print('Kolejka do kasy 5 : ', customer_at_this_moment_5)
 
     # Klient patrzy na 1 kase
+
     if customer_at_this_moment_1 < seller_flag :
+
         #kasa wolna może podchodzić
+
         with customer_line1.request() as rq:
 
             yield rq
@@ -121,6 +119,7 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
             czas_kasowania = basket_size / V
 
             #rozpoczyna się kasować
+
             print('%s zaczyna kasować w kasie 1 o czasie %d' % (nazwa, env.now))
             yield env.timeout(czas_kasowania)
             print('%s odchodzi od kasy 1 o czasie  %d' % (nazwa, env.now))
@@ -128,11 +127,13 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
 
 
     elif customer_at_this_moment_1 >= seller_flag:
+
         # kasa 1 zajęta, podchodzi do 2
 
         if customer_at_this_moment_2 < seller_flag:
 
             #kasa 2 wolna, stoi w kolejce
+
             with customer_line2.request() as rq1:
                 yield rq1
 
@@ -140,6 +141,7 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
                 czas_kasowania = basket_size / V
 
                 # rozpoczyna się kasować
+
                 print('%s zaczyna kasować w kasie 2 o czasie %d' % (nazwa, env.now))
                 yield env.timeout(czas_kasowania)
                 print('%s odchodzi od kasy 2 o czasie %d' % (nazwa, env.now))
@@ -160,6 +162,7 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
                     czas_kasowania = basket_size / V
 
                     # rozpoczyna się kasować
+
                     print('%s zaczyna kasować w kasie 3 o czasie   %d' % (nazwa, env.now))
                     yield env.timeout(czas_kasowania)
                     print('%s odchodzi od kasy 3 o czasie %d' % (nazwa, env.now))
@@ -180,12 +183,14 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
                         czas_kasowania = basket_size / V
 
                         # rozpoczyna się kasować
+
                         print('%s zaczyna kasować w kasie 4 o czasie  %d' % (nazwa, env.now))
                         yield env.timeout(czas_kasowania)
                         print('%s odchodzi od kasy 4 o czasie %d' % (nazwa, env.now))
                         czas_koniec = env.now
 
                 elif customer_at_this_moment_4 >= seller_flag:
+
                     # kasa 4 zajęta, idzie do 5
 
                     if customer_at_this_moment_5 < seller_flag:
@@ -199,19 +204,26 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
                             czas_kasowania = basket_size / V
 
                             # rozpoczyna się kasować
+
                             print('%s zaczyna kasować w kasie 5  %d' % (nazwa, env.now))
                             yield env.timeout(czas_kasowania)
                             print('%s odchodzi od kasy 5 o czasie %d' % (nazwa, env.now))
                             czas_koniec = env.now
 
                     elif customer_at_this_moment_5 >= seller_flag:
+
                         # tutaj mamy szczególny przypadek gdy wszystkie kasy są zajęte i mamy nadal przypływ ludzi
-                        # mój pomysł to po prostu z randoma wybrać kasę do której podejdzie jeszcze nie wiem jak to do
-                        # końca napisać bo mi błędy wyskakują
+
+                        # Klient patrzy na wszystkie kasy i wybiera kasę z najmniejsza kolejka
+
                         x = [customer_at_this_moment_1, customer_at_this_moment_2, customer_at_this_moment_3,
                                  customer_at_this_moment_4, customer_at_this_moment_5]
+
                         shortest_queue = min(x)
+
                         id = x.index(shortest_queue)
+
+                        #Podchodzi do kasy z najmniejszą kolejka
 
                         with sellers_lines[id].request() as rq5:
                             yield rq5
@@ -220,9 +232,10 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
                             czas_kasowania = basket_size / V
 
                             # rozpoczyna się kasować
-                            print('%s zaczyna kasować w kasie 5  %d' % (nazwa, env.now))
+
+                            print('%s zaczyna kasować w kasie %d o czasie  %d' % (nazwa, id, env.now))
                             yield env.timeout(czas_kasowania)
-                            print('%s odchodzi od kasy 5 o czasie %d' % (nazwa, env.now))
+                            print('%s odchodzi od kasy %d o czasie %d' % (nazwa, id, env.now))
                             czas_koniec = env.now
 
 
@@ -234,18 +247,38 @@ def Kolejka(seller_lines, env,nazwa, V, seller_flag):
 
 
 """ RUN  """
+
+
+
 def next_client(env):
+
+    """Jest to funkcja uruchamiająca symulacje i
+    generujaca odstep czasu pomiedzy nastepnymi klientami"""
+
     client_id = 1
+
+    #uruchomienie symulacji kolejki sklepowej
     while True:
-        yield env.timeout(random.uniform(0.3, 0.9))
+
+        yield env.timeout(random.uniform(0.3, 0.9)) # Klienci wchodza z odstepem czasu (0.3,0.9) minuty
+
         env.process(Kolejka(sellers_lines, env, 'Klient %d ' % client_id, V_k, 4))
         client_id = client_id + 1
 
+#Uruchomienie procesu symulacji
 env.process(next_client(env))
-env.run(until= 400)
+
+#Inicjalizacja symulacji
+env.run(until=czas_sym)
+
 print("!!! SYMULACJA ZAKONCZONA !!!")
 print("Tablicza czasów:\n",czasy,"\n")
-print("Srednia przebywania klienta w systemie:", np.mean(czasy))
+print("Sredni czas przebywania klienta w systemie:", np.mean(czasy))
+print("Najkrotszy czas przebywania klienta w systemie:", np.min(czasy))
+print("Najdluzszy czas przebywania klienta w systemie:", np.max(czasy))
 
 plt.plot(czasy)
+plt.title("Czas Spedzony w sklepie")
+plt.ylabel("Czas w Minutach")
+plt.xlabel("Numer Klienta")
 plt.show()
